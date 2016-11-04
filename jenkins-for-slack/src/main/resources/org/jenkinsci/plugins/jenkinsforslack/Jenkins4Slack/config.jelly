@@ -1,0 +1,41 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+ <f:entry title="Slack Channel name" field="channelname">
+    <f:textbox />
+  </f:entry>
+
+    <!-- Here we got default value of parameter which will be specified in configuration -->
+  <f:entry title="Slack Bot name" field="botname">
+      <f:textbox default="${descriptor.botname}"/>
+    </f:entry>
+
+
+     <f:block>
+        <f:optionalBlock name="request" title="Send on Passed" checked="${instance.request != null}" inline="true">
+          <f:entry title="Request which will be executed for Passed job state" field="request">
+                  <f:textarea name="request" value="${instance.pass}" />
+               </f:entry>
+        </f:optionalBlock>
+    </f:block>
+
+
+<!--
+    <f:block>
+      <f:optionalBlock name="fail" title="Send on Failed">
+          <f:entry title="Request" field="request">
+                <f:textarea />
+            </f:entry>
+        </f:optionalBlock>
+      </f:block>
+
+      <f:block>
+          <f:optionalBlock name="abort" title="Send on Aborted">
+              <f:entry title="Request" field="request">
+                    <f:textarea />
+                </f:entry>
+            </f:optionalBlock>
+          </f:block>
+-->
+
+</j:jelly>
