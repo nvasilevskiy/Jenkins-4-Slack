@@ -1,18 +1,21 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+ <!--
   <f:section title="Jenkins 4 Slack" >
 
-        <!-- Slack HOOK URL -->
         <f:entry field="slackurl" title="Slack Payload Url" >
             <f:textbox />
         </f:entry>
 
-        <!-- Slack default bot name which will appears every time when plugin was added -->
         <f:entry field="botname" title="Default Bot Name" >
             <f:textbox />
         </f:entry>
 
-        <!-- Not implemented yet <f:entry field="secretkeyid" title="Slack secret ID"><f:password field="secretKey"/> </f:entry> -->
+        <f:entry field="secretkeyid" title="Slack secret ID">
+            <f:password field="secretKey"/>
+        </f:entry>
 
   </f:section>
+  -->
 </j:jelly>
