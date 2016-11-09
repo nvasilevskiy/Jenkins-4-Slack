@@ -291,7 +291,7 @@ public class Jenkins4Slack extends Notifier {
 
         // Validator for Slackurl field
         public FormValidation doCheckChannelname(@QueryParameter String value) {
-            Pattern p = Pattern.compile("[#][a-zA-Z0-9]+");
+            Pattern p = Pattern.compile("[#][a-zA-Z0-9_]+");
             Matcher m = p.matcher(value);
             boolean matches = m.matches();
 
