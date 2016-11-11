@@ -49,8 +49,9 @@ public class Jenkins4Slack extends Notifier {
     private String requestabort = null;
     private Boolean requesta = false;
 
-    private EnvVars env;
-    private Result result;
+    private EnvVars env = null;
+    private Result result = null;
+    private BuildListener listener = null;
     //endregion
 
     @DataBoundConstructor
@@ -123,16 +124,19 @@ public class Jenkins4Slack extends Notifier {
 
         this.env = build.getEnvironment(listener);
         this.result = build.getResult();
+        this.listener = listener;
 
-        if ((this.condition != null) || (this.condition != ""))
+        if(this.condition != null && !this.condition.isEmpty())
         {
             String buildLog = build.getLog();
             if (buildLog.contains(this.condition))
             {
+                this.listener.getLogger().println("Target phrase was found:  " + this.condition );
                 SendAction();
             }
             else
             {
+                this.listener.getLogger().println("No target phrase was found:  " + this.condition );
                 return true;
             }
         }
@@ -148,11 +152,15 @@ public class Jenkins4Slack extends Notifier {
     private void SendAction()
     {
 
+        this.listener.getLogger().println("Starting Slack SEND action...");
+        this.listener.getLogger().println("Slack WebHook: " + this.slackurl);
+        this.listener.getLogger().println("Slack channel: " + this.channelname);
+        this.listener.getLogger().println("Slack bot name: " + this.botname);
         //region SUCCESS
 
         if ((result == Result.SUCCESS) && (this.requestp))  {
 
-            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestpass, ":white_check_mark:", "good"), this.botname);
+            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestpass, ":white_check_mark:", "good"), this.botname, this.listener);
 
         try
         {
@@ -169,7 +177,7 @@ public class Jenkins4Slack extends Notifier {
         //region FAILED
         if ((result == Result.FAILURE) && (this.requestf)){
 
-            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestfail, ":exclamation:", "danger"), this.botname);
+            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestfail, ":exclamation:", "danger"), this.botname, this.listener);
 
             try
             {
@@ -186,7 +194,7 @@ public class Jenkins4Slack extends Notifier {
         //region ABORTED
         if ((result == Result.ABORTED) && (this.requesta)) {
 
-            RequestService slackRequest = new RequestService(slackurl, createJson(this.requestabort, ":exclamation:", "warning"), botname);
+            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestabort, ":exclamation:", "warning"), this.botname, this.listener);
 
             try
             {
@@ -215,7 +223,13 @@ public class Jenkins4Slack extends Notifier {
         attachmentsJson.put("text", jsonRequest);
         JSONArray array = new JSONArray();
         array.add(attachmentsJson);
+        this.listener.getLogger().println("=============================");
+        this.listener.getLogger().println("Target JSON:");
+        this.listener.getLogger().println(passedJson.toString());
+        this.listener.getLogger().println(attachmentsJson.toString());
+        this.listener.getLogger().println("=============================");
         passedJson.put("attachments", array);
+
         return passedJson.toString();
     }
 

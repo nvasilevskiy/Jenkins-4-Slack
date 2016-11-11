@@ -10,6 +10,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.entity.ContentType;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpResponseException;
+import hudson.model.BuildListener;
 
 import org.json.simple.parser.JSONParser;
 import org.json.simple.JSONObject;
@@ -22,13 +23,15 @@ public class RequestService {
     private String slackUrl = null;
     private String requestBody = null;
     private String botName = null;
+    private BuildListener listener = null;
 
 
-    public RequestService(String slackUrl, String requestBody, String botName)
+    public RequestService(String slackUrl, String requestBody, String botName, BuildListener listener)
     {
         this.slackUrl = slackUrl;
         this.requestBody = requestBody;
         this.botName = botName;
+        this.listener = listener;
 
     }
 
@@ -48,15 +51,23 @@ public class RequestService {
 
             statusCode = r.getStatusLine().getStatusCode();
 
+            this.listener.getLogger().println("Response:");
+            this.listener.getLogger().println(r.getStatusLine());
+            this.listener.getLogger().println(r.getStatusLine().getReasonPhrase());
+
+
+
             if (statusCode != 200)
             {
-                throw new HttpResponseException(statusCode,"Status code it not the same as expected. Expected: 200, Actual: " + statusCode);
+                this.listener.getLogger().println("Status code it not the same as expected. Expected: 200, Actual: " + statusCode + " with status: " + r.getStatusLine() + " " + r.getStatusLine().getReasonPhrase());
+
             }
 
         }
 
         catch(IOException e) {
-            System.out.println(e);
+            this.listener.getLogger().println("An error occured!");
+            this.listener.getLogger().println(e);
         }
     }
 
