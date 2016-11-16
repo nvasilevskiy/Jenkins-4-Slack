@@ -29,6 +29,7 @@ import hudson.util.FormValidation;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.regex.*;
+import java.util.concurrent.TimeUnit;
 //endregion
 
 
@@ -51,7 +52,6 @@ public class Jenkins4Slack extends Notifier {
 
     private EnvVars env = null;
     private Result result = null;
-    private BuildListener listener = null;
     //endregion
 
     @DataBoundConstructor
@@ -122,95 +122,111 @@ public class Jenkins4Slack extends Notifier {
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
 
+        int counter = 0;
+        int postResult = -1;
+
         this.env = build.getEnvironment(listener);
         this.result = build.getResult();
-        this.listener = listener;
 
-        if(this.condition != null && !this.condition.isEmpty())
-        {
-            String buildLog = build.getLog();
-            if (buildLog.contains(this.condition))
-            {
-                this.listener.getLogger().println("Target phrase was found:  " + this.condition );
-                SendAction();
-            }
-            else
-            {
-                this.listener.getLogger().println("No target phrase was found:  " + this.condition );
-                return true;
-            }
-        }
+        listener.getLogger().println("");
+        listener.getLogger().println("Starting Slack SEND action...");
+        listener.getLogger().println("Slack WebHook: " + this.slackurl);
+        listener.getLogger().println("Slack channel: " + this.channelname);
+        listener.getLogger().println("Slack bot name: " + this.botname);
+        listener.getLogger().println("");
 
-        else
-        {
-            SendAction();
+        while (counter <=20) {
+
+            if (this.condition != null && !this.condition.isEmpty()) {
+                String buildLog = build.getLog();
+                if (buildLog.contains(this.condition)) {
+                    listener.getLogger().println("Target phrase was found:  " + this.condition);
+                    postResult = SendAction(listener);
+                } else {
+                    listener.getLogger().println("No target phrase was found:  " + this.condition);
+                    return true;
+                }
+            } else {
+                postResult = SendAction(listener);
+            }
+
+            if (postResult == 1) {
+                try {
+                    listener.getLogger().println("Trying post to SLACK! Try #" + counter);
+                    TimeUnit.SECONDS.sleep(60);
+                    counter = counter + 1;
+                    continue;
+                } catch (InterruptedException e) {
+
+                }
+            }
+
+            if (postResult == 0) {
+                listener.getLogger().println("We did it!");
+                break;
+            }
+
+
         }
 
         return true;
     }
 
-    private void SendAction()
-    {
+    private int SendAction(BuildListener listener) {
 
-        this.listener.getLogger().println("Starting Slack SEND action...");
-        this.listener.getLogger().println("Slack WebHook: " + this.slackurl);
-        this.listener.getLogger().println("Slack channel: " + this.channelname);
-        this.listener.getLogger().println("Slack bot name: " + this.botname);
-        //region SUCCESS
+        int postResult = -1;
 
-        if ((result == Result.SUCCESS) && (this.requestp))  {
+            //region SUCCESS
 
-            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestpass, ":white_check_mark:", "good"), this.botname, this.listener);
+            if ((result == Result.SUCCESS) && (this.requestp)) {
 
-        try
-        {
-            slackRequest.sendPost();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
+                RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestpass, ":white_check_mark:", "good", listener), this.botname, listener);
 
-    }
-        //endregion
+                try {
+                    postResult = slackRequest.sendPost();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
-        //region FAILED
-        if ((result == Result.FAILURE) && (this.requestf)){
-
-            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestfail, ":exclamation:", "danger"), this.botname, this.listener);
-
-            try
-            {
-                slackRequest.sendPost();
             }
-            catch (Exception e)
-            {
-                e.printStackTrace();
+            //endregion
+
+            //region FAILED
+            if ((result == Result.FAILURE) && (this.requestf)) {
+
+                RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestfail, ":exclamation:", "danger", listener), this.botname, listener);
+
+                try {
+                    postResult = slackRequest.sendPost();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
             }
+            //endregion
 
-        }
-        //endregion
+            //region ABORTED
+            if ((result == Result.ABORTED) && (this.requesta)) {
 
-        //region ABORTED
-        if ((result == Result.ABORTED) && (this.requesta)) {
+                RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestabort, ":exclamation:", "warning", listener), this.botname, listener);
 
-            RequestService slackRequest = new RequestService(this.slackurl, createJson(this.requestabort, ":exclamation:", "warning"), this.botname, this.listener);
+                try {
+                    postResult = slackRequest.sendPost();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
-            try
-            {
-                slackRequest.sendPost();
             }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
+            //endregion
+
+            return postResult;
+
+
 
         }
-        //endregion
 
-    }
 
-    public String createJson(String request, String emoji, String color)
+    public String createJson(String request, String emoji, String color, BuildListener listener)
     {
         String jsonRequest = null;
         jsonRequest = this.env.expand(request);
@@ -223,13 +239,13 @@ public class Jenkins4Slack extends Notifier {
         attachmentsJson.put("text", jsonRequest);
         JSONArray array = new JSONArray();
         array.add(attachmentsJson);
-        this.listener.getLogger().println("=============================");
-        this.listener.getLogger().println("Target JSON:");
-        this.listener.getLogger().println(passedJson.toString());
-        this.listener.getLogger().println(attachmentsJson.toString());
-        this.listener.getLogger().println("=============================");
         passedJson.put("attachments", array);
-
+        /*
+        listener.getLogger().println("=============================");
+        listener.getLogger().println("Target JSON:");
+        listener.getLogger().println(passedJson.toString());
+        listener.getLogger().println("=============================");
+        */
         return passedJson.toString();
     }
 

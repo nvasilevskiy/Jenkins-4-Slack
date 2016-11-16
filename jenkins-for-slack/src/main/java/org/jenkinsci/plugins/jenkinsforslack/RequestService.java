@@ -11,11 +11,21 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpResponseException;
 import hudson.model.BuildListener;
-
+import jenkins.model.Jenkins;
+import hudson.ProxyConfiguration;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 import java.util.Map;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.conn.scheme.Scheme;
+import javax.net.ssl.SSLContext;
+import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.CloseableHttpClient;
 
 
 public class RequestService {
@@ -35,12 +45,15 @@ public class RequestService {
 
     }
 
-    public void sendPost() throws Exception {
+    public int sendPost() throws Exception {
 
         try {
-            HttpClient c = new DefaultHttpClient();
-            HttpPost p = new HttpPost(this.slackUrl);
 
+            SSLContext sslContext = SSLContexts.custom().useTLS().build();
+            SSLConnectionSocketFactory f = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1", "TLSv1.1"}, new String[]{"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"}, null);
+            CloseableHttpClient c = HttpClients.custom().setSSLSocketFactory(f).build();
+
+            HttpPost p = new HttpPost(this.slackUrl);
             StringEntity query = new StringEntity(this.requestBody, ContentType.create("application/json"));
 
             p.setEntity(query);
@@ -56,19 +69,23 @@ public class RequestService {
             this.listener.getLogger().println(r.getStatusLine().getReasonPhrase());
 
 
-
             if (statusCode != 200)
             {
                 this.listener.getLogger().println("Status code it not the same as expected. Expected: 200, Actual: " + statusCode + " with status: " + r.getStatusLine() + " " + r.getStatusLine().getReasonPhrase());
-
             }
+            c.close();
 
         }
 
-        catch(IOException e) {
+        catch(Exception e) {
+            this.listener.getLogger().println("");
             this.listener.getLogger().println("An error occured!");
             this.listener.getLogger().println(e);
+            this.listener.getLogger().println("");
+            return 1;
         }
+
+        return 0;
     }
 
 

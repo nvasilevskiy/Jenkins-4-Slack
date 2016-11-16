@@ -11,7 +11,7 @@
   </parent>
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>jenkins-for-slack</artifactId>
-  <version>1.1</version>
+  <version>1.2.1</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -83,7 +83,7 @@
       <version>4.5.2</version>
       <scope>compile</scope>
     </dependency>
-  </dependencies>
+    </dependencies>
   <!---->
 
 </project>
